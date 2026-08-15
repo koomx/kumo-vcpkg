@@ -17,6 +17,9 @@ KMCMAKE_REPO = 'https://github.com/koomx/kmcmake.git'
 def setup(subparser):
     subparser.add_argument('name', nargs='?', help='project name')
     subparser.add_argument('-o', '--output', help='output directory for the new project')
+    subparser.add_argument(
+        '--enable-examples', action='store_true',
+        help='install kmcmake teaching demos (foo / xxd / tests)')
     subparser.add_argument('--info', action='store_true', help='show kmcmake template info')
     subparser.set_defaults(func=run)
 
@@ -66,11 +69,12 @@ def run(args):
     os.makedirs(build_dir, exist_ok=True)
     log.detail('build', build_dir)
 
-    log.detail('cmd', 'cmake -S {} -B {} -DCHANGEME={}'.format(template_dir, build_dir, pj_name))
-    r = subprocess.run(
-        ['cmake', '-S', template_dir, '-B', build_dir,
-         '-DCHANGEME=' + pj_name],
-        capture_output=True, text=True)
+    cmake_cmd = ['cmake', '-S', template_dir, '-B', build_dir,
+                 '-DCHANGEME=' + pj_name]
+    if args.enable_examples:
+        cmake_cmd.append('-DKMCMAKE_GEN_EXAMPLES=ON')
+    log.detail('cmd', ' '.join(cmake_cmd))
+    r = subprocess.run(cmake_cmd, capture_output=True, text=True)
     if r.returncode != 0:
         log.err('cmake configure failed: ' + r.stderr.strip())
         shutil.rmtree(os.path.dirname(build_dir), ignore_errors=True)
