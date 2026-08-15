@@ -1,0 +1,20 @@
+{
+  "name": "qtest",
+  "version": "0.6.0",
+  "description": [
+    "Markdown-driven C++ test framework on GTest."
+  ],
+  "homepage": "https://github.com/koomx/qtest",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "gtest",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

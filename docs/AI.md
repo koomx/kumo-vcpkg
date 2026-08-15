@@ -6,12 +6,14 @@
 
 ## 硬约束
 
+- 新增或修改 port 时，**禁止扫描 port 源码**（不要 glob/逛 `ports/` 下的实现、patch、头文件、上游仓库源码）。只允许看**当前任务必要**的 vcpkg 配置（目标 `ports/<name>/` 的 `vcpkg.json` / `portfile.cmake` / `usage`；kmcmake 则再看模板 `ports/turbo` 这三件套）和**必要**的上游 CMake（`cmake/*_deps.cmake`、安装布局相关）。
 - 只改当前目标 `ports/<name>/`。新增或升级某个 port 时，**不得修改任意其他 port**，除非用户点名。
 - 不要手改 `versions/` 里的 `git-tree`、不要手改 `baseline.json` 的 baseline；这些由 `vcpkgctl publish` 写。
 - 不要在 `vcpkg.json` 里手写 `port-version` 自增。
 - 不要改 `registry.txt`。不要删 `.vcpkg-root`。
 - `ports/vcpkg-*`（`vcpkg-cmake`、`vcpkg-cmake-config` 等）是构建系统内建 port，不要删。
 - 所有 CMake port（含零第三方依赖的 kmcmake 项目）在 `vcpkg.json` 里 **必须** host 依赖 `vcpkg-cmake` + `vcpkg-cmake-config`。缺了会报 `Unknown CMake command "vcpkg_cmake_configure"`。
+- **AI / agent 禁止在本仓目录**执行 `vcpkg install`、`vcpkg bootstrap`、`vcpkgctl bootstrap`。本仓是 registry，不是 vcpkg root；在这里装会把本仓当成安装树，并可能吃到系统头文件。overlay 试装必须在系统 `VCPKG_ROOT` 下执行，`--overlay-ports` 用本仓 `ports/<name>` 的绝对路径。
 
 发布顺序：改 port → overlay 试装通过 → `vcpkgctl publish -o . <name>`（会 commit）→ `git push`。不要跳过试装直接 publish。
 
@@ -54,11 +56,12 @@ vcpkgctl import -i /path/to/source-vcpkg -o /path/to/this-repo --all
 # 2. 写 portfile.cmake：vcpkg_from_github + vcpkg_cmake_configure / install / config_fixup
 #    SHA512 可先占位（抄个别的 port 的值）
 #
-# 3. overlay 试装，第一次会因 SHA 失败，日志里的 Actual SHA512 填回去
-./vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+# 3. overlay 试装（cwd = 系统 VCPKG_ROOT，禁止在本仓目录跑 vcpkg install）
+#    第一次会因 SHA 失败，日志里的 Actual SHA512 填回去
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 #
 # 4. 再装一次应成功
-./vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 #
 # 5. 写入 versions/ + commit
 vcpkgctl publish -o . <name>
@@ -75,14 +78,14 @@ git push
 # 1. 改 ports/<name>/vcpkg.json 的 version（git tag / 上游发布号）
 #    依赖有变才改 dependencies，不要顺手改别的 port
 #
-# 2. 清掉已装的旧包，避免缓存挡着新 tarball
-./vcpkg remove <name> --recurse
+# 2. 清掉已装的旧包（cwd = 系统 VCPKG_ROOT）
+vcpkg remove <name> --recurse
 #
 # 3. overlay 试装：旧 SHA512 对不上新包，日志里抄 Actual SHA512
-./vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 #
 # 4. 把 portfile.cmake 的 SHA512 换成真实值，再装一次应成功
-./vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 #
 # 5. publish 会写 versions/ + baseline 并 commit
 vcpkgctl publish -o . <name>
@@ -107,7 +110,7 @@ git push
 
 ## 六、常用命令
 
-先在本仓库根目录：`python3 vcpkgctl bootstrap --disable-metrics`，再 `source .env`。
+人类首次搭环境可在本仓跑 `python3 vcpkgctl bootstrap --disable-metrics` 再 `source .env`。**AI / agent 禁止在本仓执行 bootstrap 或 `vcpkg install`。**
 
 | 命令 | 做什么 |
 |------|--------|

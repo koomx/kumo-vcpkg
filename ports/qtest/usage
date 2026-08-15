@@ -1,0 +1,4 @@
+qtest provides CMake targets:
+
+    find_package(qtest CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE qtest::qtest_static)

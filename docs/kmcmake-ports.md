@@ -4,7 +4,7 @@
 
 函数名全部是 `vcpkg_*`。不要写 `kmpkg_*` / `kmpkg.json` / `kmpkg-cmake`。
 
-通用硬约束见 [AI.md](AI.md)（只动当前 `ports/<name>/`，不手改 `versions/`、`baseline`、`port-version`）。
+通用硬约束见 [AI.md](AI.md)（只动当前 `ports/<name>/`，不手改 `versions/`、`baseline`、`port-version`）。新增或修改时禁止扫描 port 源码；只看 turbo 三件套、目标 port 的 vcpkg 配置，以及上游 `cmake/*_deps.cmake`。
 
 ## 便利边界
 
@@ -105,16 +105,18 @@ turbo provides CMake targets:
 
 ## 新增：overlay 试装再 publish
 
-不要在本仓跑 `vcpkgctl bootstrap`。用系统已有的 `vcpkg`（`VCPKG_ROOT` 指向系统安装）。跑 portfile 的 CMake 需要支持 `string(JSON … STRING_ENCODE)`（CMake 4.4+）。
+**AI / agent 禁止在本仓目录**跑 `vcpkg install`、`vcpkg bootstrap`、`vcpkgctl bootstrap`。用系统已有的 `vcpkg`（cwd / `VCPKG_ROOT` 指向系统安装）。跑 portfile 的 CMake 需要支持 `string(JSON … STRING_ENCODE)`（CMake 4.4+）。
 
 ```bash
 # 1. 复制 ports/turbo → ports/<name>，改 name / REPO / 依赖 / usage 目标名
 # 2. SHA512 可先占位
-# 3. 第一次 overlay：日志里的 Actual SHA512 填回 portfile.cmake
-vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+# 3. 第一次 overlay：在系统 VCPKG_ROOT 下执行（不要 cd 到本仓再 vcpkg install）
+#    日志里的 Actual SHA512 填回 portfile.cmake
+cd "$VCPKG_ROOT"
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 
 # 4. 再装应成功
-vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 
 # 5. 写入 versions/ + baseline 并 commit（会 git commit，push 另说）
 vcpkgctl publish -o . <name>
@@ -129,9 +131,10 @@ vcpkgctl publish -o . <name>
 ```bash
 # 0. git ls-remote --tags … 确认 tag；v0.8.0 → json 写成 "0.8.0"
 # 1. 只改 ports/<name>/vcpkg.json 的 version（新运行时依赖才改 dependencies）
+# 下列 vcpkg 命令在系统 VCPKG_ROOT 下执行，禁止在本仓目录跑
 vcpkg remove <name> --recurse
-vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"   # 抄新 SHA512
-vcpkg install <name> --overlay-ports="$(pwd)/ports/<name>"
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"   # 抄新 SHA512
+vcpkg install <name> --overlay-ports="<abs-path-to-this-repo>/ports/<name>"
 vcpkgctl publish -o . <name>
 ```
 
