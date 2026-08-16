@@ -1,0 +1,4 @@
+fermat provides CMake targets:
+
+    find_package(fermat CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE fermat::fermat_static)

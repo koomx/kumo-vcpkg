@@ -11463,6 +11463,10 @@
         "qtest": {
             "baseline": "0.6.0",
             "port-version": 0
+        },
+        "fermat": {
+            "baseline": "0.6.1",
+            "port-version": 0
         }
     }
 }

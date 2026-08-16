@@ -1,5 +1,11 @@
 # publish summary start #####
 operator: vcpkgctl
+when: 2026-08-16T06:06:22.355105+00:00
+ports.count: 1
+port: fermat 0.6.1 (port-version 0)
+# publish summary end #####
+# publish summary start #####
+operator: vcpkgctl
 when: 2026-08-15T03:02:54.556757+00:00
 ports.count: 1
 port: qtest 0.6.0 (port-version 0)
